@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat Room</title>
+    <style>
+        /* Simple chatbox styling */
+        #messages {
+            height: 400px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #f4f4f4;
+        }
+        .message {
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 70%;
+            clear: both;
+        }
+        .sender {
+            font-weight: bold;
+        }
+        .timestamp {
+            font-size: 0.8em;
+            color: gray;
+        }
+
+        /* Align messages to left or right */
+        .message.left {
+            background-color: #e0e0e0;
+            text-align: left;
+            float: left;
+        }
+        .message.right {
+            background-color: #b3d9ff;
+            text-align: right;
+            float: right;
+        }
+
+        /* Clearfix for the messages container */
+        #messages::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chat Room: {{ room_name }}</h1>
+    <div id="messages"></div>
+    <input type="text" id="messageInput" placeholder="Enter message">
+    <button onclick="sendMessage()">Send</button>
+
+    <script>
+    // Use the access token from the template or from localStorage
+    const token = "{{ access_token }}" || localStorage.getItem('access_token');
+    const currentUserId = "{{ current_user_id }}";  // Assuming you pass the current user's ID in the template
+    const roomName = "{{ room_name }}";  // Room name passed from the template
+
+    // Check if token is available
+    if (!token) {
+        alert('No access token found. Please sign in first.');
+        window.location.href = '/api/auth/template/signin/';
+    }
+
+    // Function to dynamically determine the WebSocket protocol and host
+    function getWebSocketUrl() {
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const host = window.location.host;  // Dynamically use the current host
+        return `${protocol}://${host}/ws/chat/${roomName}/?token=${token}`;
+    }
+
+    let socket;
+    let reconnectInterval;
+
+    // Function to initialize WebSocket connection
+    function initializeWebSocket() {
+        socket = new WebSocket(getWebSocketUrl());
+
+        // Handle WebSocket open event
+        socket.onopen = function () {
+            console.log('WebSocket connection established');
+            if (reconnectInterval) clearInterval(reconnectInterval);  // Clear any reconnection attempts
+        };
+
+        // Handle incoming messages
+        socket.onmessage = function (e) {
+            const data = JSON.parse(e.data);
+            displayMessage(data);
+        };
+
+        // Handle WebSocket close event and attempt reconnection
+        socket.onclose = function (e) {
+            console.error('WebSocket connection closed. Attempting to reconnect...', e.reason);
+            reconnectInterval = setInterval(initializeWebSocket, 3000);  // Try to reconnect every 3 seconds
+        };
+
+        // Handle WebSocket errors
+        socket.onerror = function (e) {
+            console.error('WebSocket encountered an error:', e);
+            socket.close();  // Close socket on error and attempt to reconnect
+        };
+    }
+
+    // Function to display a message in the chatbox
+    function displayMessage(data) {
+        const messages = document.getElementById('messages');
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message');
+
+        // Align the message based on the sender
+        if (data.user_id === currentUserId) {
+            messageElement.classList.add('right');  // Message from current user
+        } else {
+            messageElement.classList.add('left');   // Message from another user
+        }
+
+        messageElement.innerHTML = `
+            <span class="sender">${data.user_id}:</span>
+            ${data.message}
+            <span class="timestamp">${new Date().toLocaleTimeString()}</span>
+        `;
+        messages.appendChild(messageElement);
+        messages.scrollTop = messages.scrollHeight;  // Auto-scroll to bottom
+    }
+
+    // Function to send a message
+    function sendMessage() {
+        const input = document.getElementById('messageInput');
+        const message = input.value.trim();
+        if (message) {
+            socket.send(JSON.stringify({ message }));
+            input.value = '';  // Clear input field after sending
+        }
+    }
+
+    // Initialize WebSocket connection on page load
+    initializeWebSocket();
+</script>
+
+
+</body>
+</html>

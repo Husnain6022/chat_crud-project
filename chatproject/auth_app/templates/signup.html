@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sign Up</title>
+</head>
+<body>
+    <h1>Sign Up</h1>
+    <form id="signupForm">
+        <label for="username">Username:</label>
+        <input type="text" id="username" required><br><br>
+        <label for="password">Password:</label>
+        <input type="password" id="password" required><br><br>
+        <button type="submit">Sign Up</button>
+    </form>
+
+    <div id="response"></div>
+
+    <script>
+        document.getElementById('signupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // Correct URL for template-based sign-up
+            fetch('/api/auth/template/signup/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            })
+            .then(response => response.json().then(data => ({ status: response.status, body: data })))
+            .then(response => {
+                if (response.status === 201) {  // Status 201 means user created successfully
+                    document.getElementById('response').innerHTML = "Sign-up successful!";
+                    // Redirect to sign-in page after a short delay
+                    setTimeout(() => {
+                        window.location.href = '/api/auth/template/signin/';
+                    }, 2000);  // Redirect to sign-in after 2 seconds
+                } else {
+                    document.getElementById('response').innerHTML = "Sign-up failed: " + JSON.stringify(response.body);
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                document.getElementById('response').innerHTML = "Sign-up failed!";
+            });
+        });
+    </script>
+</body>
+</html>

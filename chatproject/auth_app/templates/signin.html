@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sign In</title>
+</head>
+<body>
+    <h1>Sign In</h1>
+    <form id="signinForm">
+        <label for="username">Username:</label>
+        <input type="text" id="username" required><br><br>
+        <label for="password">Password:</label>
+        <input type="password" id="password" required><br><br>
+        <button type="submit">Sign In</button>
+    </form>
+
+    <div id="response"></div>
+
+    <button id="logoutButton" style="display:none;" onclick="logout()">Logout</button> <!-- Hidden Logout button -->
+    <button id="chatButton" style="display:none;" onclick="redirectToChat()">Go to Chat</button> <!-- Hidden Chat button -->
+
+    <script>
+        document.getElementById('signinForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // Sign-in request
+            fetch('/api/auth/template/signin/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            })
+            .then(response => response.json().then(data => ({ status: response.status, body: data })))
+            .then(response => {
+                if (response.status === 200 && response.body.access) {
+                    // Store the access token
+                    localStorage.setItem('access_token', response.body.access);
+                    document.getElementById('response').innerHTML = "Sign-in successful!";
+
+                    // Show Logout and Chat buttons
+                    document.getElementById('logoutButton').style.display = 'block';
+                    document.getElementById('chatButton').style.display = 'block';
+                } else {
+                    console.error('Error:', response.body);
+                    document.getElementById('response').innerHTML = "Sign-in failed: " + JSON.stringify(response.body);
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                document.getElementById('response').innerHTML = "Sign-in failed!";
+            });
+        });
+
+        // Logout function: Clear tokens from localStorage and reload the page
+        function logout() {
+            localStorage.removeItem('access_token');
+            alert("Logged out successfully!");
+            location.reload();  // Reload the page after logout
+        }
+
+        // Redirect to Chat Room: After successful sign-in, redirect to the chat room with token in query string
+        function redirectToChat() {
+            const roomName = "room1";  // Example chat room name
+            const token = localStorage.getItem('access_token');  // Get token from localStorage
+            window.location.href = `/api/chat/${roomName}/?token=${token}`;  // Pass the token as a query parameter
+        }
+    </script>
+</body>
+</html>

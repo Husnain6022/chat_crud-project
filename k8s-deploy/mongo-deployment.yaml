@@ -1,0 +1,68 @@
+# MongoDB StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo
+  namespace: my-chat-app
+spec:
+  serviceName: "mongo"
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mongo
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      containers:
+      - name: mongo
+        image: mongo:6.0
+        ports:
+        - containerPort: 27017
+        volumeMounts:
+        - name: mongo-data
+          mountPath: /data/db
+        command:
+        - mongod
+        - "--replSet"
+        - rs0
+        - "--bind_ip_all"
+  volumeClaimTemplates:
+  - metadata:
+      name: mongo-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 5Gi
+
+---
+# MongoDB Headless Service (for StatefulSet ReplicaSet Communication)
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo
+  namespace: my-chat-app
+spec:
+  ports:
+  - port: 27017
+  selector:
+    app: mongo
+  clusterIP: None  # Headless service for StatefulSet
+
+---
+# MongoDB External Service (NodePort for External Access)
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-external
+  namespace: my-chat-app
+spec:
+  type: NodePort
+  ports:
+    - port: 27017
+      targetPort: 27017
+      nodePort: 32017  # NodePort for external access, change if needed
+  selector:
+    app: mongo

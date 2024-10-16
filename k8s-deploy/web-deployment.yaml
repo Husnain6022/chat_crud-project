@@ -1,0 +1,54 @@
+# Web (Django) Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app
+  namespace: my-chat-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      restartPolicy: Always  # Ensure restartPolicy is set correctly
+      containers:
+      - name: web
+        image: husnain844/chat_crud_project:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DJANGO_SECRET_KEY
+          value: supersecretkey
+        - name: DJANGO_DEBUG
+          value: "True"
+        - name: DJANGO_ALLOWED_HOSTS
+          value: "localhost,127.0.0.1"
+        - name: MONGO_HOST
+          value: "mongo-0.mongo.my-chat-app.svc.cluster.local,mongo-1.mongo.my-chat-app.svc.cluster.local,mongo-2.mongo.my-chat-app.svc.cluster.local"
+        - name: MONGO_PORT
+          value: "27017"
+        - name: REDIS_HOST
+          value: "redis-service.my-chat-app.svc.cluster.local"
+        - name: REDIS_PORT
+          value: "6379"
+        command: ["daphne", "-b", "0.0.0.0", "-p", "8000", "chatproject.asgi:application"]  # Add this here
+
+---
+# Web Service (NodePort)
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-service
+  namespace: my-chat-app
+spec:
+  type: NodePort
+  ports:
+    - port: 8000
+      targetPort: 8000
+      nodePort: 30080  # This is the port on the node you will use to access the service
+  selector:
+    app: web

@@ -1,0 +1,53 @@
+# Ingress Configuration for Web App
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web-ingress
+  namespace: my-chat-app
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"  # Important for WebSocket
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "3600"  # Allow long connections
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"  # Prevent disconnections
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"  # Prevent disconnections
+    nginx.ingress.kubernetes.io/connection-proxy-header: "keep-alive"
+    nginx.ingress.kubernetes.io/upgrade: "websocket"  # Enable WebSocket support
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: my-chat-app.local
+    http:
+      paths:
+      - path: /ws/
+        pathType: Prefix
+        backend:
+          service:
+            name: web-service
+            port:
+              number: 8000
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: web-service
+            port:
+              number: 8000
+
+---
+
+# Expose Ingress via NodePort Service (Optional)
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-ingress-service
+  namespace: my-chat-app
+spec:
+  type: NodePort
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30081  # NodePort for accessing the Ingress
+  selector:
+    app: web
