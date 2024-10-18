@@ -85,14 +85,18 @@
         };
 
         // Handle incoming messages
-        socket.onmessage = function (e) {
-            const data = JSON.parse(e.data);
-            displayMessage(data);
+         socket.onmessage = function (e) {
+            try {
+                const data = JSON.parse(e.data);
+                displayMessage(data);
+            } catch (error) {
+                console.error('Failed to parse message:', error);
+            }
         };
 
         // Handle WebSocket close event and attempt reconnection
         socket.onclose = function (e) {
-            console.error('WebSocket connection closed. Attempting to reconnect...', e.reason);
+            console.warn('WebSocket connection closed. Attempting to reconnect...', e.reason);
             reconnectInterval = setInterval(initializeWebSocket, 3000);  // Try to reconnect every 3 seconds
         };
 
@@ -126,12 +130,17 @@
     }
 
     // Function to send a message
-    function sendMessage() {
+      async function sendMessage() {
         const input = document.getElementById('messageInput');
         const message = input.value.trim();
         if (message) {
-            socket.send(JSON.stringify({ message }));
-            input.value = '';  // Clear input field after sending
+            try {
+                await socket.send(JSON.stringify({ message }));
+                input.value = '';
+            } catch (error) {
+                console.error('Failed to send message:', error);
+                alert('Message could not be sent. Check connection.');
+            }
         }
     }
 
