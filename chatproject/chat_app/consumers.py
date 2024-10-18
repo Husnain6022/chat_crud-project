@@ -63,14 +63,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_user_from_token(self):
-        token = self.scope['query_string'].decode().split('=')[1]
         try:
+            query_string = self.scope['query_string'].decode()
+            token = query_string.split('=')[1] if '=' in query_string else None
+            if not token:
+                raise ValueError("Token missing in query string")
+
             access_token = AccessToken(token)
-            user = User.objects.get(id=access_token['user_id'])  # Use get_user_model() for User
+            user = User.objects.get(id=access_token['user_id'])
             return user
         except Exception as e:
-            print(f"Token error: {e}")  # Debugging info
-            return None
+            print(f"Token error: {e}")
+            return None  # Ensure the WebSocket connection closes gracefully
 
     @database_sync_to_async
     def get_chat_history(self, room_name):
