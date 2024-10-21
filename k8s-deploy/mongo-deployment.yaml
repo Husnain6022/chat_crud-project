@@ -12,6 +12,8 @@ spec:
       app: mongo
   template:
     metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
       labels:
         app: mongo
     spec:
@@ -46,12 +48,15 @@ metadata:
   namespace: my-chat-app
 spec:
   ports:
-  - port: 27017
+    - name: http-mongo
+      port: 27017
   selector:
     app: mongo
   clusterIP: None  # Headless service for StatefulSet
 
 ---
+
+
 # MongoDB External Service (NodePort for External Access)
 apiVersion: v1
 kind: Service
@@ -61,7 +66,8 @@ metadata:
 spec:
   type: NodePort
   ports:
-    - port: 27017
+    - name: http-mongo-external
+      port: 27017
       targetPort: 27017
       nodePort: 32017  # NodePort for external access, change if needed
   selector:

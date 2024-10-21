@@ -35,20 +35,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def get_or_create_room(self, room_name):
         from .models import ChatRoom  # Import here
-        with transaction.atomic():
-            room, created = ChatRoom.objects.get_or_create(name=room_name)
-            if created:
-                room.save()
 
-            # Refresh from db to ensure we have the latest state
-            room.refresh_from_db()
-
-            # Add the user to the room participants
-            if not room.participants.filter(id=self.user.id).exists():
-                room.participants.add(self.user)
-
-            # Save again to ensure all changes are committed
+        room, created = ChatRoom.objects.get_or_create(name=room_name)
+        if created:
             room.save()
+
+        # Refresh from db to ensure we have the latest state
+        room.refresh_from_db()
+
+        # Add the user to the room participants
+        if not room.participants.filter(id=self.user.id).exists():
+            room.participants.add(self.user)
+
+        # Save again to ensure all changes are committed
+        room.save()
 
         return room
 
