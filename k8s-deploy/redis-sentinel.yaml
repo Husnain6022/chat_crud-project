@@ -1,0 +1,187 @@
+# PersistentVolumeClaim for Redis Data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-pvc
+  namespace: my-chat-app
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+
+# ConfigMap for Redis Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: my-chat-app
+data:
+  redis.conf: |
+    bind 0.0.0.0
+    protected-mode no
+    port 6379
+    dir /data
+    appendonly yes
+    replica-serve-stale-data yes
+    replica-read-only yes
+
+---
+
+# ConfigMap for Redis Sentinel Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-sentinel-config
+  namespace: my-chat-app
+data:
+  sentinel.conf: |
+    port 26379
+    dir /tmp
+    sentinel monitor mymaster redis-0.redis-headless.my-chat-app.svc.cluster.local 6379 2
+    sentinel down-after-milliseconds mymaster 5000
+    sentinel failover-timeout mymaster 10000
+    sentinel parallel-syncs mymaster 1
+
+  init-sentinel.sh: |
+    #!/bin/sh
+    cp /sentinel-config/sentinel.conf /etc/sentinel/sentinel.conf
+    exec redis-server /etc/sentinel/sentinel.conf --sentinel
+
+---
+
+# StatefulSet for Redis Instances
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: my-chat-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: redis
+  serviceName: redis-headless
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:6.0
+          command: ["redis-server", "/etc/redis/redis.conf"]
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - name: redis-config
+              mountPath: /etc/redis/redis.conf
+              subPath: redis.conf
+            - name: redis-data
+              mountPath: /data
+          readinessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: redis-pvc
+        - name: redis-config
+          configMap:
+            name: redis-config
+
+---
+
+# Deployment for Redis Sentinel
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-sentinel
+  namespace: my-chat-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: redis-sentinel
+  template:
+    metadata:
+      labels:
+        app: redis-sentinel
+    spec:
+      initContainers:
+        - name: wait-for-redis
+          image: busybox
+          command: ['sh', '-c', 'until nc -z redis-0.redis-headless.my-chat-app.svc.cluster.local 6379; do echo waiting for redis; sleep 2; done']
+      containers:
+        - name: redis-sentinel
+          image: redis:6.0
+          command: ["/bin/sh", "/sentinel-config/init-sentinel.sh"]
+          ports:
+            - containerPort: 26379
+          volumeMounts:
+            - name: sentinel-config
+              mountPath: /sentinel-config
+            - name: sentinel-data
+              mountPath: /etc/sentinel
+          env:
+            - name: REDIS_MASTER
+              value: redis-0.redis-headless.my-chat-app.svc.cluster.local
+          readinessProbe:
+            tcpSocket:
+              port: 26379
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 26379
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: sentinel-config
+          configMap:
+            name: redis-sentinel-config
+            defaultMode: 0755
+        - name: sentinel-data
+          emptyDir: {}
+
+---
+
+# Headless Service for Redis
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-headless
+  namespace: my-chat-app
+spec:
+  clusterIP: None
+  selector:
+    app: redis
+  ports:
+    - name: redis
+      port: 6379
+
+---
+
+# Service for Redis Sentinel
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-sentinel
+  namespace: my-chat-app
+spec:
+  selector:
+    app: redis-sentinel
+  ports:
+    - name: redis-sentinel
+      port: 26379
+      targetPort: 26379

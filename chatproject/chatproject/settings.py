@@ -234,18 +234,68 @@ redis_port = int(os.getenv('REDIS_PORT', 6379))
 if 'KUBERNETES_SERVICE_HOST' in os.environ:
     redis_host = os.getenv('REDIS_HOST', 'redis-service.my-chat-app.svc.cluster.local')
 
-# Channel layers configuration
+# # Channel layers configuration
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             "hosts": [(redis_host, redis_port)],
+#             "capacity": 1000,  # Adjust based on your needs
+#             "expiry": 10,  # Optional: Message expiry time in seconds
+#         },
+#     },
+# }
+
+
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [(redis_host, redis_port)],
-            "capacity": 1000,  # Adjust based on your needs
-            "expiry": 10,  # Optional: Message expiry time in seconds
+            "hosts": [
+                ("redis-0.redis-headless.my-chat-app.svc.cluster.local", 6379),
+                ("redis-1.redis-headless.my-chat-app.svc.cluster.local", 6379),
+                ("redis-2.redis-headless.my-chat-app.svc.cluster.local", 6379),
+            ],
+            "capacity": 1000,
+            "expiry": 10,
         },
     },
 }
 
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             "hosts": [
+#                 ("redis-sentinel.my-chat-app.svc.cluster.local", 26379)
+#             ],
+#             "service_name": "mymaster",  # Name of the Redis master configured in Sentinel
+#             "sentinel": True,  # Enable Sentinel mode
+#             "capacity": 1000,
+#             "expiry": 10,
+#         },
+#     },
+# }
+
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             'hosts': [{
+#                 'sentinel': True,
+#                 'sentinel_hosts': [
+#                     ('redis-sentinel.my-chat-app.svc.cluster.local', 26379),
+#                 ],
+#                 'service_name': 'mymaster',
+#                 'password': None,  # Add if you have password configured
+#                 'db': 0,
+#                 'prefix': '',  # Add a prefix if needed
+#             }],
+#             'capacity': 1000,
+#             'expiry': 10,
+#         },
+#     },
+# }
 
 # SimpleJWT settings for token expiration
 SIMPLE_JWT = {
