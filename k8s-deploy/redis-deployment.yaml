@@ -1,3 +1,45 @@
+## Redis Deployment
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: redis
+#  namespace: my-chat-app
+#spec:
+#  replicas: 3
+#  selector:
+#    matchLabels:
+#      app: redis
+#  template:
+#    metadata:
+#      labels:
+#        app: redis
+#    spec:
+#      containers:
+#      - name: redis
+#        image: redis:6.0
+#        command: ["redis-server", "--bind", "0.0.0.0"]
+#        ports:
+#        - containerPort: 6379
+#        volumeMounts:
+#        - name: redis-data
+#          mountPath: /data
+#        readinessProbe:  # Ensure Redis is ready before services connect
+#          tcpSocket:
+#            port: 6379
+#          initialDelaySeconds: 5
+#          periodSeconds: 10
+#        livenessProbe:  # Ensure the Redis container stays healthy
+#          tcpSocket:
+#            port: 6379
+#          initialDelaySeconds: 15
+#          periodSeconds: 20
+#      volumes:
+#      - name: redis-data
+#        persistentVolumeClaim:
+#          claimName: redis-pvc
+#
+#---
+
 # Redis Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -5,7 +47,7 @@ metadata:
   name: redis
   namespace: my-chat-app
 spec:
-  replicas: 3
+  replicas: 1  # Change to 1
   selector:
     matchLabels:
       app: redis
@@ -23,12 +65,12 @@ spec:
         volumeMounts:
         - name: redis-data
           mountPath: /data
-        readinessProbe:  # Ensure Redis is ready before services connect
+        readinessProbe:
           tcpSocket:
             port: 6379
           initialDelaySeconds: 5
           periodSeconds: 10
-        livenessProbe:  # Ensure the Redis container stays healthy
+        livenessProbe:
           tcpSocket:
             port: 6379
           initialDelaySeconds: 15
@@ -40,37 +82,55 @@ spec:
 
 ---
 
-# Redis Service (Headless for internal communication)
+
+
+# Redis Service
 apiVersion: v1
 kind: Service
 metadata:
   name: redis-service
   namespace: my-chat-app
 spec:
-  clusterIP: None  # Headless service for Redis pods
   ports:
-    - port: 6379
-  selector:
-    app: redis
-
----
-
-# Redis External Service (NodePort for External Access)
-apiVersion: v1
-kind: Service
-metadata:
-  name: redis-external
-  namespace: my-chat-app
-spec:
-  type: NodePort
-  ports:
-    - port: 6379
+    - name: redis  # Added port name according to Istio convention
+      port: 6379
       targetPort: 6379
-      nodePort: 30079  # NodePort for external access
   selector:
     app: redis
 
+
 ---
+## Redis Service (Headless for internal communication)
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: redis-service
+#  namespace: my-chat-app
+#spec:
+#  clusterIP: None  # Headless service for Redis pods
+#  ports:
+#    - port: 6379
+#  selector:
+#    app: redis
+
+---
+
+## Redis External Service (NodePort for External Access)
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: redis-external
+#  namespace: my-chat-app
+#spec:
+#  type: NodePort
+#  ports:
+#    - port: 6379
+#      targetPort: 6379
+#      nodePort: 30079  # NodePort for external access
+#  selector:
+#    app: redis
+#
+#---
 
 # Redis Persistent Volume Claim
 apiVersion: v1
