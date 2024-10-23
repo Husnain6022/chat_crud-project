@@ -247,35 +247,35 @@ if 'KUBERNETES_SERVICE_HOST' in os.environ:
 # }
 
 
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [
-                ("redis-0.redis-headless.my-chat-app.svc.cluster.local", 6379),
-                ("redis-1.redis-headless.my-chat-app.svc.cluster.local", 6379),
-                ("redis-2.redis-headless.my-chat-app.svc.cluster.local", 6379),
-            ],
-            "capacity": 1000,
-            "expiry": 10,
-        },
-    },
-}
-
 # CHANNEL_LAYERS = {
 #     'default': {
 #         'BACKEND': 'channels_redis.core.RedisChannelLayer',
 #         'CONFIG': {
 #             "hosts": [
-#                 ("redis-sentinel.my-chat-app.svc.cluster.local", 26379)
+#                 ("redis-0.redis-headless.my-chat-app.svc.cluster.local", 6379),
+#                 ("redis-1.redis-headless.my-chat-app.svc.cluster.local", 6379),
+#                 ("redis-2.redis-headless.my-chat-app.svc.cluster.local", 6379),
 #             ],
-#             "service_name": "mymaster",  # Name of the Redis master configured in Sentinel
-#             "sentinel": True,  # Enable Sentinel mode
 #             "capacity": 1000,
 #             "expiry": 10,
 #         },
 #     },
 # }
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [
+                ("redis-sentinel.my-chat-app.svc.cluster.local", 26379)
+            ],
+            "service_name": "mymaster",  # Name of the Redis master configured in Sentinel
+            "sentinel": True,  # Enable Sentinel mode
+            "capacity": 1000,
+            "expiry": 10,
+        },
+    },
+}
 
 # CHANNEL_LAYERS = {
 #     'default': {
