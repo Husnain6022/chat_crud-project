@@ -1,0 +1,87 @@
+# redis-config.yaml
+# sentinel-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sentinel-config
+  namespace: my-chat-app
+data:
+  sentinel.conf: |
+    port 26379
+    dir /tmp
+    sentinel deny-scripts-reconfig yes
+    sentinel resolve-hostnames yes
+    sentinel announce-hostnames yes
+    sentinel monitor mymaster redis-0.redis-headless.my-chat-app.svc.cluster.local 6379 2
+    sentinel auth-pass mymaster your-redis-password
+    sentinel down-after-milliseconds mymaster 5000
+    sentinel failover-timeout mymaster 60000
+    sentinel parallel-syncs mymaster 1
+---
+
+# redis-sentinel-statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-sentinel
+  namespace: my-chat-app
+spec:
+  serviceName: redis-sentinel-headless
+  replicas: 3
+  selector:
+    matchLabels:
+      app: redis-sentinel
+  template:
+    metadata:
+      labels:
+        app: redis-sentinel
+    spec:
+      containers:
+        - name: sentinel
+          image: redis:6.2
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /tmp/sentinel
+              cp /config/sentinel.conf /tmp/sentinel/sentinel.conf
+              redis-server /tmp/sentinel/sentinel.conf --sentinel
+          ports:
+            - containerPort: 26379
+          volumeMounts:
+            - name: sentinel-config
+              mountPath: /config
+            - name: sentinel-data
+              mountPath: /tmp/sentinel
+          readinessProbe:
+            tcpSocket:
+              port: 26379
+            initialDelaySeconds: 15
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 26379
+            initialDelaySeconds: 20
+            periodSeconds: 10
+      volumes:
+        - name: sentinel-config
+          configMap:
+            name: sentinel-config
+        - name: sentinel-data
+          emptyDir: {}
+
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-sentinel
+  namespace: my-chat-app
+spec:
+  clusterIP: None  # Important for a headless service
+  selector:
+    app: redis-sentinel
+  ports:
+    - port: 26379
+      targetPort: 26379

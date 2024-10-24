@@ -40,17 +40,40 @@ spec:
 
 ---
 # Web Service (NodePort)
+
 apiVersion: v1
 kind: Service
 metadata:
   name: web-service
   namespace: my-chat-app
+  labels:
+    app: web
 spec:
   type: NodePort
   ports:
     - name: http-web
       port: 8000
       targetPort: 8000
-      nodePort: 30080  # This is the port on the node you will use to access the service
+      nodePort: 30080
+    - name: websocket
+      port: 8001
+      targetPort: 8000  # Keep using the same container port
+      nodePort: 30081  # New port for WebSocket connections
   selector:
     app: web
+
+
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: web-service
+#  namespace: my-chat-app
+#spec:
+#  type: NodePort
+#  ports:
+#    - name: http-web
+#      port: 8000
+#      targetPort: 8000
+#      nodePort: 30080  # This is the port on the node you will use to access the service
+#  selector:
+#    app: web

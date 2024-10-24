@@ -266,17 +266,15 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [
-                ("redis-sentinel.my-chat-app.svc.cluster.local", 26379)
-            ],
-            "service_name": "mymaster",  # Name of the Redis master configured in Sentinel
-            "sentinel": True,  # Enable Sentinel mode
+            "hosts": [("redis-sentinel.my-chat-app.svc.cluster.local", 26379)],
+            "service_name": "mymaster",  # Should match the Sentinel service name
+            "sentinel": True,
+            "password": "your-redis-password",  # Ensure this matches your Redis config
             "capacity": 1000,
             "expiry": 10,
         },
     },
 }
-
 # CHANNEL_LAYERS = {
 #     'default': {
 #         'BACKEND': 'channels_redis.core.RedisChannelLayer',
