@@ -15,6 +15,7 @@ spec:
         port:
           number: 6379
 
+
 ---
 
 apiVersion: networking.istio.io/v1alpha3
@@ -26,12 +27,27 @@ spec:
   host: redis-headless.my-chat-app.svc.cluster.local
   trafficPolicy:
     loadBalancer:
-      simple: ROUND_ROBIN
+      simple: ROUND_ROBIN  # Ensure equal distribution of TCP traffic
     connectionPool:
       tcp:
         maxConnections: 1000
         connectTimeout: 10s
     outlierDetection:
-      consecutiveErrors: 5
+      consecutive5xxErrors: 5  # Updated field
       interval: 10s
       baseEjectionTime: 30s
+
+
+---
+
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: redis-peer-auth
+  namespace: my-chat-app
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  mtls:
+    mode: DISABLE  # Disable mTLS only for Redis pods
