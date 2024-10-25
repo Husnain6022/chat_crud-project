@@ -1,0 +1,89 @@
+docker build -t husnain844/chat_crud_project:latest .
+docker push husnain844/chat_crud_project:latest
+
+
+kind create cluster --config C:\Users\PC\Desktop\channels_chat\k8s-deploy\kind-config.yaml --name redis-sentinel-cluster
+kubectl create namespace my-chat-app
+
+
+In redis folder
+       	kubectl apply -f redis-config.yaml -n my-chat-app
+       	kubectl apply -f redis-sentinel.yaml --namespace=my-chat-app
+	For debugging
+           	kubectl describe pod redis-1 -n my-chat-app
+            kubectl exec -it redis-1 -n my-chat-app -- cat /data/redis.conf
+
+kubectl apply -f mongo-deployment.yaml --namespace=my-chat-app
+kubectl apply -f web-deployment.yaml --namespace=my-chat-app
+kubectl get pods -n my-chat-app
+
+		wait unti all pods comes in running state
+
+kubectl exec -it mongo-0 -n my-chat-app -- mongosh
+
+rs.initiate({
+  _id: "rs0",
+  members: [
+    { _id: 0, host: "mongo-0.mongo.my-chat-app.svc.cluster.local:27017", priority: 2 },
+    { _id: 1, host: "mongo-1.mongo.my-chat-app.svc.cluster.local:27017", priority: 1 },
+    { _id: 2, host: "mongo-2.mongo.my-chat-app.svc.cluster.local:27017", priority: 1 }
+  ]
+}, { force: true })
+
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+
+kubectl logs -l app=crud-app-backend -f
+kubectl exec -it <web-eipod-name> -n my-chat-app -- /bin/sh
+( in shell ) python manage.py migrate
+
+kubectl apply -f ingress.yaml --namespace=my-chat-app
+kubectl apply -f metrics-server-deployment.yaml
+
+
+kubectl edit deployment ingress-nginx-controller -n ingress-nginx
+
+            Original:
+            args:
+              - /nginx-ingress-controller
+              ...
+              - --publish-status-address=localhost
+            Modified:
+            args:
+              - /nginx-ingress-controller
+              ...
+              - --publish-status-address= 192.168.20.247
+
+
+
+istioctl install --set profile=default -y
+kubectl get pods -n istio-system
+kubectl apply -f redis-virtual-service.yaml -n my-chat-app
+kubectl apply -f virtual-service.yaml -n my-chat-app
+kubectl label namespace my-chat-app istio-injection=enabled
+kubectl rollout restart deployment -n my-chat-app
+kubectl rollout restart statefulset -n my-chat-app
+
+
+
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.23/samples/addons/kiali.yaml
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.17/samples/addons/prometheus.yaml
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.17/samples/addons/grafana.yaml
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.17/samples/addons/jaeger.yaml
+
+
+
+kubectl edit configmap kiali -n istio-system
+
+        Add the Grafana URL under external_services:
+        external_services:
+            grafana:
+                url: "http://grafana.istio-system.svc.cluster.local:3000"
+
+kubectl delete pod -l app=kiali -n istio-system
+
+
+
+
+kubectl get pods -n my-chat-app -o wide
+kubectl describe pod <pod-name> -n my-chat-app
