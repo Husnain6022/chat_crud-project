@@ -18,7 +18,7 @@ spec:
       restartPolicy: Always  # Ensure restartPolicy is set correctly
       containers:
       - name: web
-        image: husnain844/chat_crud_project:latest
+        image: husnain844/chat_crud_project:v1
         ports:
         - containerPort: 8000
         env:

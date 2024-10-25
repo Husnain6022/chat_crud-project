@@ -216,15 +216,6 @@ TEMPLATES = [
 # Daphne for ASGI
 ASGI_APPLICATION = 'chatproject.asgi.application'
 
-# Redis Channel Layer for WebSockets
-# CHANNEL_LAYERS = {
-#     'default': {
-#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
-#         'CONFIG': {
-#             "hosts": [(os.getenv('REDIS_HOST', 'redis'), int(os.getenv('REDIS_PORT', 6379)))],
-#         },
-#     },
-# }
 
 # Default Redis host and port
 redis_host = os.getenv('REDIS_HOST', 'redis')
