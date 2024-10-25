@@ -1,0 +1,43 @@
+                       #Ingress-Nginix Cluster
+
+docker build -t husnain844/chat_crud_project:v1 .
+docker push husnain844/chat_crud_project:v1
+
+
+kind create cluster --config C:\Users\PC\Desktop\channels_chat\k8s-deploy\kind-config.yaml --name ingress-nginex
+
+kubectl create namespace my-chat-app
+
+
+kubectl apply -f mongo-deployment.yaml --namespace=my-chat-app
+kubectl apply -f web-deployment.yaml --namespace=my-chat-app
+kubectl apply -f redis-deployment.yaml --namespace=my-chat-app
+kubectl exec -it mongo-0 -n my-chat-app -- mongosh
+
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+
+kubectl exec -it <pod-name> -n my-chat-app -- /bin/sh
+	( in shell ) python manage.py migrate
+
+kubectl apply -f ingress.yaml --namespace=my-chat-app
+kubectl apply -f metrics-server-deployment.yaml
+
+kubectl edit deployment ingress-nginx-controller -n ingress-nginx
+
+            Original:
+            args:
+              - /nginx-ingress-controller
+              ...
+              - --publish-status-address=localhost
+            Modified:
+            args:
+              - /nginx-ingress-controller
+              ...
+              - --publish-status-address= 192.168.20.247
+
+kubectl get pods --all-namespaces -o wide
+kubectl top pods -A
+kubectl top nodes
+
+kubectl rollout restart deployment -n my-chat-app
