@@ -1,3 +1,6 @@
+http://my-chat-app.local/api/auth/template/signup/
+http://my-chat-app.local/api/auth/template/signin/
+
 docker build -t husnain844/chat_crud_project:latest .
 docker push husnain844/chat_crud_project:latest
 

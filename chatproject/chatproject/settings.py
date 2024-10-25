@@ -216,16 +216,6 @@ TEMPLATES = [
 # Daphne for ASGI
 ASGI_APPLICATION = 'chatproject.asgi.application'
 
-# Redis Channel Layer for WebSockets
-# CHANNEL_LAYERS = {
-#     'default': {
-#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
-#         'CONFIG': {
-#             "hosts": [(os.getenv('REDIS_HOST', 'redis'), int(os.getenv('REDIS_PORT', 6379)))],
-#         },
-#     },
-# }
-
 # Default Redis host and port
 redis_host = os.getenv('REDIS_HOST', 'redis')
 redis_port = int(os.getenv('REDIS_PORT', 6379))
@@ -234,33 +224,6 @@ redis_port = int(os.getenv('REDIS_PORT', 6379))
 if 'KUBERNETES_SERVICE_HOST' in os.environ:
     redis_host = os.getenv('REDIS_HOST', 'redis-service.my-chat-app.svc.cluster.local')
 
-# # Channel layers configuration
-# CHANNEL_LAYERS = {
-#     'default': {
-#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
-#         'CONFIG': {
-#             "hosts": [(redis_host, redis_port)],
-#             "capacity": 1000,  # Adjust based on your needs
-#             "expiry": 10,  # Optional: Message expiry time in seconds
-#         },
-#     },
-# }
-
-
-# CHANNEL_LAYERS = {
-#     'default': {
-#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
-#         'CONFIG': {
-#             "hosts": [
-#                 ("redis-0.redis-headless.my-chat-app.svc.cluster.local", 6379),
-#                 ("redis-1.redis-headless.my-chat-app.svc.cluster.local", 6379),
-#                 ("redis-2.redis-headless.my-chat-app.svc.cluster.local", 6379),
-#             ],
-#             "capacity": 1000,
-#             "expiry": 10,
-#         },
-#     },
-# }
 
 CHANNEL_LAYERS = {
     'default': {
